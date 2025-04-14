@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.25)
 project(lightwarelidar)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -28,15 +28,7 @@ add_library(lwNx src/lwNx.cpp)
 add_library(platformLinux src/linux/platformLinux.cpp)
 add_library(serialPortLinux src/linux/lwSerialPortLinux.cpp)
 
-add_executable(sf40c src/sf40c.cpp)
-add_executable(sf45b src/sf45b.cpp)
-
-target_link_libraries(sf40c
-  lwNx
-  platformLinux
-  serialPortLinux
-  ${catkin_LIBRARIES}
-)
+add_library(sf45b src/sf45b.cpp)
 
 target_link_libraries(sf45b
   lwNx

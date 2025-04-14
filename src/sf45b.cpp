@@ -1,8 +1,7 @@
 //----------------------------------------------------------------------------------------------------------------------------------
 // LightWare SF45B ROS driver.
 //----------------------------------------------------------------------------------------------------------------------------------
-#include "common.h"
-#include "lwNx.h"
+#include "sf45b.h"
 
 #include <math.h>
 #include "ros/ros.h"
@@ -90,11 +89,7 @@ int driverScanStart(lwSerialPort* Serial, lwSf45Params* Params) {
 	return 0;
 }
 
-struct lwDistanceResult {
-	float x;
-	float y;
-	float z;
-};
+
 
 int driverScan(lwSerialPort* Serial, lwDistanceResult* DistanceResult) {
 	// The incoming point data packet is Command 44: Distance data in cm.
@@ -118,32 +113,53 @@ int driverScan(lwSerialPort* Serial, lwDistanceResult* DistanceResult) {
 	return 0;
 }
 
-int main(int argc, char** argv) {
+
+
+SF45Communicate::SF45Communicate(int argc, char** argv) : distanceResults(maxPointsPerMsg){ 
 	ros::init(argc, argv, "sf45b");
-    
-    ros::NodeHandle n;
-    ros::NodeHandle privateNode("~");
 
-	ros::Publisher pointCloudPub = n.advertise<sensor_msgs::PointCloud2>("pointcloud", 10);
-		
-	lwSerialPort* serial = 0;
+    n = new ros::NodeHandle();
+    privateNode = new ros::NodeHandle("~");
 
-	int32_t baudRate;
-    privateNode.param(std::string("baudrate"), baudRate, 115200);
-	std::string portName;
-    privateNode.param(std::string("port"), portName, std::string("/dev/ttyUSB0"));
+	pointCloudPub = n->advertise<sensor_msgs::PointCloud2>("sf45/points", 10);
+}
+
+SF45Communicate::~SF45Communicate(){
+	delete n;
+	delete privateNode;
+}
+
+//Baud Rate
+int32_t SF45Communicate::getBaudRate(){
+	return baudRate;
+}
+
+void SF45Communicate::setBaudRate(int32_t rate){
+	baudRate = rate;
+}
+
+//Port Name
+std::string SF45Communicate::getPortName(){
+	return portName;
+}
+
+void SF45Communicate::setPortName(std::string name){
+	portName = name;
+}
+
+//Start
+int SF45Communicate::startUp(){
 	std::string frameId;
-    privateNode.param(std::string("frame_id"), frameId, std::string("laser"));
+	privateNode->param(std::string("frame_id"), frameId, std::string("laser"));
 
 	lwSf45Params params;
-	privateNode.param(std::string("updateRate"), params.updateRate, 6);
-	privateNode.param(std::string("cycleDelay"), params.cycleDelay, 5);
-	privateNode.param(std::string("lowAngleLimit"), params.lowAngleLimit, -45.0f);
-	privateNode.param(std::string("highAngleLimit"), params.highAngleLimit, 45.0f);
+	privateNode->param(std::string("updateRate"), params.updateRate, 6);
+	privateNode->param(std::string("cycleDelay"), params.cycleDelay, 5);
+	privateNode->param(std::string("lowAngleLimit"), params.lowAngleLimit, -45.0f);
+	privateNode->param(std::string("highAngleLimit"), params.highAngleLimit, 45.0f);
 	validateParams(&params);
 	
-	int maxPointsPerMsg;
-	privateNode.param(std::string("maxPoints"), maxPointsPerMsg, 100);
+	privateNode->param(std::string("maxPoints"), maxPointsPerMsg, 100);
 	if (maxPointsPerMsg < 1) maxPointsPerMsg = 1;
 
 	ROS_INFO("Starting SF45B node");
@@ -158,7 +174,7 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	sensor_msgs::PointCloud2 pointCloudMsg;
+
 	pointCloudMsg.header.frame_id = frameId;
 	pointCloudMsg.height = 1;
 	pointCloudMsg.width = maxPointsPerMsg;
@@ -185,12 +201,15 @@ int main(int argc, char** argv) {
 	pointCloudMsg.is_dense = true;
 
 	pointCloudMsg.data = std::vector<uint8_t>(maxPointsPerMsg * 12);
+	
+	return 1;
+}
 
-	int currentPoint = 0;
-	std::vector<lwDistanceResult> distanceResults(maxPointsPerMsg);
+//Run
+int SF45Communicate::run(){
+	startUp();
 
 	while (ros::ok()) {
-
 		while (true) {
 			lwDistanceResult distanceResult;
 			int status = driverScan(serial, &distanceResult);
@@ -217,3 +236,8 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
+
+void SF45Communicate::testBuildSystem(){
+	std::cout << "Got to library defined in sf4b.cpp" << std::endl;
+}
+

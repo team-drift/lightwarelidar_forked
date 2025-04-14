@@ -1,0 +1,61 @@
+#ifndef SF45_COMMUNICATE_H
+#define SF45_COMMUNICATE_H
+
+#include "lwNx.h"
+#include "common.h"
+
+#include <vector>
+#include <string>
+#include "ros/ros.h"
+#include "sensor_msgs/PointCloud2.h"
+
+struct lwDistanceResult {
+	float x;
+	float y;
+	float z;
+};
+
+class SF45Communicate {
+    /*
+    This class is meant to serve as a library to communicate with the SF45B Lidar sensor
+
+    SF45Communicate builds off of the SF45B ROS driver from LightWare
+    */
+    private:
+        ros::NodeHandle* n = nullptr;
+        ros::NodeHandle* privateNode = nullptr;
+
+        ros::Publisher pointCloudPub;
+
+        lwSerialPort* serial = nullptr;
+
+        int32_t baudRate = 115200;
+        std::string portName = "/dev/tty.usbmodem38S45_156941";
+
+        sensor_msgs::PointCloud2 pointCloudMsg;
+
+        int maxPointsPerMsg = 100;
+        int currentPoint = 0;
+        std::vector<lwDistanceResult> distanceResults;
+
+    public:
+        //Constructor and destructor
+        SF45Communicate(int argc, char** argv);
+        ~SF45Communicate();
+
+        //Start lidar
+        int startUp();
+        int run();
+
+        //Getters and Setters
+        int32_t getBaudRate();
+        void setBaudRate(int32_t rate);
+
+        std::string getPortName();
+        void setPortName(std::string name);
+
+        //Confirmation of builds working together
+        void testBuildSystem();
+};
+
+#endif
