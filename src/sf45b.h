@@ -10,9 +10,8 @@
 #include "sensor_msgs/PointCloud2.h"
 
 struct lwDistanceResult {
-	float x;
-	float y;
-	float z;
+	float distance;
+	float angle;
 };
 
 class SF45Communicate {
@@ -56,6 +55,10 @@ class SF45Communicate {
 
         //Confirmation of builds working together
         void testBuildSystem();
+
+        //Get data
+
+
 };
 
 #endif

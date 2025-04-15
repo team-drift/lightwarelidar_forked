@@ -17,7 +17,8 @@ bool lwSerialPortLinux::connect(const char* Name, int BitRate) {
 	_descriptor = -1;
 	printf("Attempt com connection: %s\n", Name);
 		
-	_descriptor = open(Name, O_RDWR | O_NOCTTY | O_SYNC);
+	_descriptor = open(Name, O_RDWR | O_NOCTTY | O_SYNC | O_NONBLOCK);
+
 	
 	if (_descriptor < 0) {
 		printf("Couldn't open serial port!\n");

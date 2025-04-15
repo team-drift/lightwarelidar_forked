@@ -29,15 +29,18 @@ void validateParams(lwSf45Params* Params) {
 }
 
 int driverStart(lwSerialPort** Serial, const char* PortName, int32_t BaudRate) {
+
 	platformInit();
 
 	lwSerialPort* serial = platformCreateSerialPort();
+
 	*Serial = serial;
 	if (!serial->connect(PortName, BaudRate)) {
 		ROS_ERROR("Could not establish serial connection on %s", PortName);
 		return 1;
 	};
 
+	std::cout << "2" << std::endl;
 	// Disable streaming of point data. (Command 30: Stream)
 	if (!lwnxCmdWriteUInt32(serial, 30, 0)) { return 1; }
 
@@ -97,17 +100,17 @@ int driverScan(lwSerialPort* Serial, lwDistanceResult* DistanceResult) {
 
 	if (lwnxRecvPacket(Serial, 44, &response, 1000)) {
 		int16_t distanceCm = (response.data[5] << 8) | response.data[4];
-		int16_t angleHundredths = (response.data[7] << 8) | response.data[6];
+        int16_t angleHundredths = (response.data[7] << 8) | response.data[6];
 
-		float distance = distanceCm / 100.0f;
-		float angle = angleHundredths / 100.0f;
-		float faceAngle = (angle - 90) * M_PI / 180.0;
+        float distance = distanceCm / 100.0f;
+        float angle = angleHundredths / 100.0f;
 
-		DistanceResult->x = distance * -cos(faceAngle);
-		DistanceResult->y = distance * sin(faceAngle);
-		DistanceResult->z = 0;
+        printf("Distance: %.2f meters, Angle: %.2f degrees\n", distance, angle);
 
-		return 1;
+        DistanceResult->distance = distance;
+        DistanceResult->angle = angle;
+
+        return 1;
 	}
 
 	return 0;
@@ -153,26 +156,34 @@ int SF45Communicate::startUp(){
 	privateNode->param(std::string("frame_id"), frameId, std::string("laser"));
 
 	lwSf45Params params;
+
 	privateNode->param(std::string("updateRate"), params.updateRate, 6);
 	privateNode->param(std::string("cycleDelay"), params.cycleDelay, 5);
 	privateNode->param(std::string("lowAngleLimit"), params.lowAngleLimit, -45.0f);
 	privateNode->param(std::string("highAngleLimit"), params.highAngleLimit, 45.0f);
 	validateParams(&params);
+
 	
 	privateNode->param(std::string("maxPoints"), maxPointsPerMsg, 100);
 	if (maxPointsPerMsg < 1) maxPointsPerMsg = 1;
 
+
 	ROS_INFO("Starting SF45B node");
+
 	
 	if (driverStart(&serial, portName.c_str(), baudRate) != 0) {
 		ROS_ERROR("Failed to start driver");
 		return 1;
 	}
 
+	std::cout << "1" << std::endl;
+
 	if (driverScanStart(serial, &params) != 0) {
 		ROS_ERROR("Failed to start scan");
 		return 1;
 	}
+
+	std::cout << "1" << std::endl;
 
 
 	pointCloudMsg.header.frame_id = frameId;
@@ -224,8 +235,21 @@ int SF45Communicate::run(){
 			if (currentPoint == maxPointsPerMsg) {
 				memcpy(&pointCloudMsg.data[0], &distanceResults[0], maxPointsPerMsg * 12);
 
+				std::cout << "Publishing point cloud:\n";
+
+				for (int i = 0; i < maxPointsPerMsg; ++i) {
+					float distance, angle;
+					memcpy(&distance, &pointCloudMsg.data[i * 12 + 0], sizeof(float));
+					memcpy(&angle, &pointCloudMsg.data[i * 12 + 4], sizeof(float));
+
+					std::cout << "Distance: " << distance << " Angle: " << angle << std::endl;
+				}
+
+
 				pointCloudMsg.header.stamp = ros::Time::now();
 				pointCloudPub.publish(pointCloudMsg);
+
+
 				
 				currentPoint = 0;
 			}
