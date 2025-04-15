@@ -1,8 +1,8 @@
 #ifndef SF45_COMMUNICATE_H
 #define SF45_COMMUNICATE_H
 
-#include "lwNx.h"
-#include "common.h"
+#include "../include/lwNx.h"
+#include "../include/common.h"
 
 #include <vector>
 #include <string>

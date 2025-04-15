@@ -1,0 +1,2 @@
+/Users/swabhankatkoori/miniconda3/envs/ROS/bin/arm64-apple-darwin20.0.0-ar qc ../../devel/lib/libplatformLinux.a CMakeFiles/platformLinux.dir/src/linux/platformLinux.cpp.o
+/Users/swabhankatkoori/miniconda3/envs/ROS/bin/llvm-ranlib ../../devel/lib/libplatformLinux.a

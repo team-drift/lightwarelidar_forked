@@ -38,6 +38,19 @@ target_link_libraries(sf45b
 )
 
 
+target_link_libraries(lwNx
+  platformLinux
+  serialPortLinux
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(platformLinux
+  serialPortLinux
+  ${catkin_LIBRARIES}
+)
+
+
+
 #############
 ## Install ##
 #############
