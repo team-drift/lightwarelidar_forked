@@ -1,2 +1,0 @@
-/Users/swabhankatkoori/miniconda3/envs/ROS/bin/arm64-apple-darwin20.0.0-ar qc ../../devel/lib/libsf45b.a CMakeFiles/sf45b.dir/src/sf45b.cpp.o
-/Users/swabhankatkoori/miniconda3/envs/ROS/bin/llvm-ranlib ../../devel/lib/libsf45b.a

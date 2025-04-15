@@ -1,8 +1,0 @@
-prefix=/usr/local
-
-Name: lightwarelidar
-Description: Description of lightwarelidar
-Version: 1.1.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: roscpp sensor_msgs
