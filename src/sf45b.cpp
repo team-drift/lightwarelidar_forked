@@ -7,6 +7,7 @@
 #include "ros/ros.h"
 #include "sensor_msgs/PointCloud2.h"
 
+
 struct lwSf45Params {
 	int32_t updateRate;
 	int32_t cycleDelay;
@@ -130,6 +131,8 @@ SF45Communicate::SF45Communicate(int argc, char** argv) : distanceResults(maxPoi
 SF45Communicate::~SF45Communicate(){
 	delete n;
 	delete privateNode;
+
+	stop();
 }
 
 //Baud Rate
@@ -176,14 +179,12 @@ int SF45Communicate::startUp(){
 		return 1;
 	}
 
-	std::cout << "1" << std::endl;
 
 	if (driverScanStart(serial, &params) != 0) {
 		ROS_ERROR("Failed to start scan");
 		return 1;
 	}
 
-	std::cout << "1" << std::endl;
 
 
 	pointCloudMsg.header.frame_id = frameId;
@@ -220,8 +221,10 @@ int SF45Communicate::startUp(){
 int SF45Communicate::run(){
 	startUp();
 
-	while (ros::ok()) {
-		while (true) {
+	while (ros::ok() && running) {
+		// while (running) {
+			if (!running) break; 
+
 			lwDistanceResult distanceResult;
 			int status = driverScan(serial, &distanceResult);
 
@@ -233,35 +236,69 @@ int SF45Communicate::run(){
 			}
 
 			if (currentPoint == maxPointsPerMsg) {
+				dataMutex.lock();
+
 				memcpy(&pointCloudMsg.data[0], &distanceResults[0], maxPointsPerMsg * 12);
 
 				std::cout << "Publishing point cloud:\n";
 
-				for (int i = 0; i < maxPointsPerMsg; ++i) {
-					float distance, angle;
-					memcpy(&distance, &pointCloudMsg.data[i * 12 + 0], sizeof(float));
-					memcpy(&angle, &pointCloudMsg.data[i * 12 + 4], sizeof(float));
-
-					std::cout << "Distance: " << distance << " Angle: " << angle << std::endl;
-				}
-
-
 				pointCloudMsg.header.stamp = ros::Time::now();
 				pointCloudPub.publish(pointCloudMsg);
+
+				dataMutex.unlock();
 
 
 				
 				currentPoint = 0;
+			// }
 			}
-		}
+		
 
 		ros::spinOnce();
+
+		if (!running) break; 
 	}
 
 	return 0;
+}
+
+std::vector<float> SF45Communicate::getData(){
+	std::vector<float> data(2);
+	for (int i = 0; i < maxPointsPerMsg; ++i) {
+		dataMutex.lock();
+
+		if (pointCloudMsg.data.empty()) {
+			std::cout << "No data in pointCloudMsg.\n";
+			// dataMutex.unlock();
+			return {};
+		}
+
+		float distance, angle;
+		memcpy(&distance, &pointCloudMsg.data[i * 12 + 0], sizeof(float));
+		memcpy(&angle, &pointCloudMsg.data[i * 12 + 4], sizeof(float));
+
+		data.push_back(distance);
+		data.push_back(angle);
+
+		dataMutex.unlock();
+
+	}
+
+	return data;
 }
 
 void SF45Communicate::testBuildSystem(){
 	std::cout << "Got to library defined in sf4b.cpp" << std::endl;
 }
 
+void SF45Communicate::start(){
+	running = true;
+	threading = std::thread(&SF45Communicate::run, this);
+}
+
+void SF45Communicate::stop(){
+	running = false;
+	if (threading.joinable()) {
+		threading.join();
+	}
+}

@@ -6,6 +6,10 @@
 
 #include <vector>
 #include <string>
+#include <vector>
+#include <thread>
+#include <mutex>
+
 #include "ros/ros.h"
 #include "sensor_msgs/PointCloud2.h"
 
@@ -37,6 +41,12 @@ class SF45Communicate {
         int currentPoint = 0;
         std::vector<lwDistanceResult> distanceResults;
 
+        //Threads
+        std::mutex dataMutex;
+        std::thread threading;
+
+        bool running = true;
+
     public:
         //Constructor and destructor
         SF45Communicate(int argc, char** argv);
@@ -57,6 +67,11 @@ class SF45Communicate {
         void testBuildSystem();
 
         //Get data
+        std::vector<float> getData();
+
+        //For threads
+        void start();
+	    void stop();
 
 
 };
